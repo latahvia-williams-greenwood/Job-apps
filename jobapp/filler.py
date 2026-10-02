@@ -40,7 +40,10 @@ class Applicant:
     # ---------- entry point ----------
 
     def run(self, url: str) -> None:
-        start = time.monotonic()
+        self.run_many([(url, "")])
+
+    def run_many(self, jobs: list[tuple[str, str]]) -> None:
+        """Apply to each (url, label) in turn, reusing one browser window."""
         with sync_playwright() as pw:
             ctx = pw.chromium.launch_persistent_context(
                 str(self.profile.base_dir / ".browser-profile"),
@@ -48,26 +51,44 @@ class Applicant:
                 viewport={"width": 1280, "height": 900},
             )
             page = ctx.pages[0] if ctx.pages else ctx.new_page()
-            page.goto(url, wait_until="domcontentloaded")
+            try:
+                for i, (url, label) in enumerate(jobs, 1):
+                    if len(jobs) > 1:
+                        print(f"\n=== [{i}/{len(jobs)}] {label or url}")
+                    if self._apply_one(page, url, last=i == len(jobs)) == "stop":
+                        break
+            finally:
+                self.cache.save()
+                ctx.close()
+
+    def _apply_one(self, page: Page, url: str, last: bool = True) -> str:
+        """Returns "done", "skipped" or "stop"."""
+        start = time.monotonic()
+        self.job_description, self.page_title = "", ""
+        self.job_info, self.cover_letter_text, self.cover_letter_paths = {}, None, {}
+
+        page.goto(url, wait_until="domcontentloaded")
+        self._settle(page)
+        self.job_description = self._read_job_description(page)
+        self.page_title = page.title()
+        self._open_application_form(page)
+
+        while True:
+            self.fill_page(page)
+            print(f"\n⏱  {time.monotonic() - start:.0f}s elapsed.")
+            print("Review the highlighted fields in the browser and click Submit yourself.")
+            print("  [Enter]  fill the current page again (e.g. after clicking Next on a multi-step form)")
+            print("  q        done with this job (logs it" + (" and closes the browser)" if last else ", then opens the next job)"))
+            if not last:
+                print("  s        skip this job without logging it")
+                print("  x        stop here (logs this job)")
+            choice = input("> ").strip().lower()
+            if choice.startswith("s") and not last:
+                return "skipped"
+            if choice.startswith(("q", "x")):
+                self._log(url)
+                return "stop" if choice.startswith("x") else "done"
             self._settle(page)
-
-            self.job_description = self._read_job_description(page)
-            self.page_title = page.title()
-            self._open_application_form(page)
-
-            while True:
-                self.fill_page(page)
-                print(f"\n⏱  {time.monotonic() - start:.0f}s elapsed.")
-                print("Review the highlighted fields in the browser and click Submit yourself.")
-                print("  [Enter]  fill the current page again (e.g. after clicking Next on a multi-step form)")
-                print("  q        finish (logs the application and closes the browser)")
-                if input("> ").strip().lower().startswith("q"):
-                    break
-                self._settle(page)
-
-            self._log(url)
-            self.cache.save()
-            ctx.close()
 
     # ---------- page helpers ----------
 
@@ -131,7 +152,11 @@ class Applicant:
         # 1. Upload the résumé first: many portals parse it and pre-fill fields.
         fields = self._scan(page)
         for frame, f, filled in fields:
-            if f.kind == "file" and not filled and not _is_cover_letter(f) and self.profile.resume_path:
+            if f.kind == "file" and not filled and _is_transcript(f) and self.profile.transcript_path:
+                if self._upload(frame, f, self.profile.transcript_path):
+                    print(f"  ✓ uploaded transcript → {f.question}")
+                continue
+            if f.kind == "file" and not filled and not _is_cover_letter(f) and not _is_other_doc(f) and self.profile.resume_path:
                 if self._upload(frame, f, self.profile.resume_path):
                     print(f"  ✓ uploaded résumé → {f.question or 'file field'}")
                     page.wait_for_timeout(2500)
@@ -287,3 +312,13 @@ class Applicant:
 
 def _is_cover_letter(f: FormField) -> bool:
     return bool(re.search(r"cover[\s_-]?letter|motivation letter|letter of interest", f.question + " " + f.name, re.I))
+
+
+def _is_transcript(f: FormField) -> bool:
+    return bool(re.search(r"transcript", f.question + " " + f.name, re.I))
+
+
+def _is_other_doc(f: FormField) -> bool:
+    """File fields that want something other than a résumé (don't upload the résumé there)."""
+    return bool(re.search(r"transcript|writing sample|portfolio|reference|certificat|photo|headshot|\bid\b",
+                          f.question + " " + f.name, re.I))

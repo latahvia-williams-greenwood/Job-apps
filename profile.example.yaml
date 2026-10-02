@@ -3,6 +3,7 @@
 # profile.yaml is git-ignored so your personal info never gets committed.
 
 resume: resume.pdf            # path to your résumé (.pdf, .docx, .txt or .md)
+transcript: ""                # optional: transcript PDF, uploaded when a form asks for one
 
 personal:
   first_name: Jane
@@ -28,6 +29,7 @@ work:
   school: Georgia State University
   degree: B.S. Business Administration
   graduation_year: "2019"
+  gpa: ""
 
 # Answers to the questions almost every application asks.
 preferences:

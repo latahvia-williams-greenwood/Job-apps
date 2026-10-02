@@ -17,6 +17,8 @@ def profile(tmp_path):
     data = yaml.safe_load((ROOT / "profile.example.yaml").read_text())
     (tmp_path / "resume.txt").write_text("Jane Doe\nCustomer Success Manager, Acme Corp, 2019-2024\nSQL, Tableau")
     data["resume"] = "resume.txt"
+    (tmp_path / "transcript.txt").write_text("Cumulative GPA: 3.5")
+    data["transcript"] = "transcript.txt"
     path = tmp_path / "profile.yaml"
     path.write_text(yaml.safe_dump(data))
     return load_profile(path)
@@ -87,6 +89,7 @@ def test_fill_fixture_form(profile, tmp_path, monkeypatch):
         assert v("#sql") == "4"
         assert page.locator("input[name=privacy]").is_checked()
         assert page.locator("#resume").evaluate("el => el.files[0].name") == "resume.txt"
+        assert page.locator("#tr").evaluate("el => el.files[0].name") == "transcript.txt"
         assert page.locator("#cl").evaluate("el => el.files[0].name").endswith(".pdf")
         browser.close()
 
@@ -97,3 +100,31 @@ def test_fill_fixture_form(profile, tmp_path, monkeypatch):
         "I acknowledge the privacy policy",
     ])
     assert list((tmp_path / "out").glob("*.pdf"))
+
+
+def test_read_notion_csv(tmp_path):
+    from jobapp.joblist import pending, read_jobs
+
+    csv_path = tmp_path / "Job Tracker.csv"
+    csv_path.write_text(
+        "﻿Company,Position,Status,Job Link,Notes\n"
+        "Acme,Data Analyst,Not applied,https://boards.greenhouse.io/acme/jobs/1,\n"
+        "Globex,Intern,Applied,https://jobs.lever.co/globex/2,\n"
+        "Initech,PM Intern,,,apply here: https://initech.wd1.myworkdayjobs.com/x/3).\n"
+        "Umbrella,Analyst,Interested,,\n"
+        "Acme,Data Analyst,,https://boards.greenhouse.io/acme/jobs/1,dup\n",
+        encoding="utf-8",
+    )
+    jobs = read_jobs(csv_path)
+    assert [j.url for j in jobs] == [
+        "https://boards.greenhouse.io/acme/jobs/1",
+        "https://jobs.lever.co/globex/2",
+        "https://initech.wd1.myworkdayjobs.com/x/3",
+        "https://boards.greenhouse.io/acme/jobs/1",
+    ]
+    assert jobs[0].label == "Acme – Data Analyst"
+
+    log = tmp_path / "applications.csv"
+    log.write_text("date,company,title,url,cover_letter\n2026-10-01,,,https://initech.wd1.myworkdayjobs.com/x/3,\n")
+    assert [j.company for j in pending(jobs, log)] == ["Acme"]
+    assert len(pending(jobs, log, include_all=True)) == 4

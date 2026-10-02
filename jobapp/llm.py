@@ -47,10 +47,14 @@ eeo choices; otherwise choose the "decline to answer" option."""
 
 
 def _context(profile: Profile, job_description: str) -> str:
+    transcript = (
+        f"<transcript>\n{profile.transcript_text}\n</transcript>\n\n" if profile.transcript_text else ""
+    )
     return (
         f"<applicant_profile>\n{profile.as_prompt_text()}</applicant_profile>\n\n"
         f"<resume>\n{profile.resume_text or '(no résumé provided)'}\n</resume>\n\n"
-        f"<job_posting>\n{job_description or '(not available)'}\n</job_posting>"
+        + transcript
+        + f"<job_posting>\n{job_description or '(not available)'}\n</job_posting>"
     )
 
 

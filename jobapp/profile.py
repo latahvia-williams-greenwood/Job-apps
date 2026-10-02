@@ -14,6 +14,8 @@ class Profile:
     resume_path: Path | None
     resume_text: str
     base_dir: Path = field(default_factory=Path.cwd)
+    transcript_path: Path | None = None
+    transcript_text: str = ""
 
     def get(self, dotted: str, default: str = "") -> str:
         """Look up a value like 'personal.email'."""
@@ -30,7 +32,7 @@ class Profile:
 
     def as_prompt_text(self) -> str:
         """The profile as YAML, for giving to Claude (résumé path stripped)."""
-        data = {k: v for k, v in self.data.items() if k != "resume"}
+        data = {k: v for k, v in self.data.items() if k not in ("resume", "transcript")}
         return yaml.safe_dump(data, sort_keys=False, allow_unicode=True)
 
 
@@ -57,16 +59,19 @@ def load_profile(path: str | Path = "profile.yaml") -> Profile:
     data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
     base_dir = path.resolve().parent
 
-    resume_path = None
-    resume_text = ""
-    if data.get("resume"):
-        resume_path = Path(data["resume"])
-        if not resume_path.is_absolute():
-            resume_path = base_dir / resume_path
-        if resume_path.exists():
-            resume_text = read_document(resume_path)
-        else:
-            print(f"warning: résumé not found at {resume_path}")
-            resume_path = None
+    resume_path, resume_text = _load_doc(data.get("resume"), base_dir, "résumé")
+    transcript_path, transcript_text = _load_doc(data.get("transcript"), base_dir, "transcript")
+    return Profile(data=data, resume_path=resume_path, resume_text=resume_text, base_dir=base_dir,
+                   transcript_path=transcript_path, transcript_text=transcript_text)
 
-    return Profile(data=data, resume_path=resume_path, resume_text=resume_text, base_dir=base_dir)
+
+def _load_doc(value: str | None, base_dir: Path, what: str) -> tuple[Path | None, str]:
+    if not value:
+        return None, ""
+    path = Path(value)
+    if not path.is_absolute():
+        path = base_dir / path
+    if not path.exists():
+        print(f"warning: {what} not found at {path}")
+        return None, ""
+    return path, read_document(path)
