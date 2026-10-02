@@ -1,0 +1,14 @@
+# Personal data — never commit
+profile.yaml
+answers_cache.yaml
+applications.csv
+output/
+*.pdf
+*.docx
+!tests/fixtures/**
+.browser-profile/
+
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
