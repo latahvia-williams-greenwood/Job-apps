@@ -1,6 +1,7 @@
 """Command line:
 
     python -m jobapp apply <job-url> [--cover-letter auto|always|never]
+    python -m jobapp batch <jobs.csv | jobs.txt> [--all] [--limit N] [--list]
     python -m jobapp cover-letter <job-url | job.txt | -> [--notes "..."]
 """
 
@@ -22,6 +23,14 @@ def main(argv: list[str] | None = None) -> int:
     apply.add_argument("--cover-letter", choices=["auto", "always", "never"], default="auto",
                        help="auto = only when the form asks for one (default)")
     apply.add_argument("--no-ai", action="store_true", help="only use your profile answers; never call Claude")
+
+    batch = sub.add_parser("batch", help="apply to every job in a list (e.g. a Notion tracker exported as CSV)")
+    batch.add_argument("jobs", help="a .csv with a link column, or a .txt with one URL per line")
+    batch.add_argument("--all", action="store_true", help="include jobs already applied to or marked done")
+    batch.add_argument("--limit", type=int, default=0, help="only do the first N jobs")
+    batch.add_argument("--list", action="store_true", help="just show which jobs would be opened")
+    batch.add_argument("--cover-letter", choices=["auto", "always", "never"], default="auto")
+    batch.add_argument("--no-ai", action="store_true")
 
     letter = sub.add_parser("cover-letter", help="write a cover letter from a job description")
     letter.add_argument("job", help="job posting URL, a text file with the description, or - to paste it")
@@ -45,6 +54,24 @@ def main(argv: list[str] | None = None) -> int:
 
         Applicant(profile, cover_letter="never" if args.no_ai else args.cover_letter,
                   out_dir=out_dir, use_ai=not args.no_ai).run(args.url)
+        return 0
+
+    if args.command == "batch":
+        from .joblist import pending, read_jobs
+
+        all_jobs = read_jobs(Path(args.jobs))
+        jobs = pending(all_jobs, profile.base_dir / "applications.csv", include_all=args.all)
+        if args.limit:
+            jobs = jobs[: args.limit]
+        print(f"{len(jobs)} job(s) to do ({len(all_jobs) - len(jobs)} skipped as done, duplicate or over the limit).")
+        for i, job in enumerate(jobs, 1):
+            print(f"  {i:>3}. {job.label}" + (f"  [{job.status}]" if job.status else "") + (f"\n       {job.url}" if job.label != job.url else ""))
+        if args.list or not jobs:
+            return 0
+        from .filler import Applicant
+
+        Applicant(profile, cover_letter="never" if args.no_ai else args.cover_letter,
+                  out_dir=out_dir, use_ai=not args.no_ai).run_many([(j.url, j.label) for j in jobs])
         return 0
 
     from . import llm

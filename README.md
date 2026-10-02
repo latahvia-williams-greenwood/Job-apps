@@ -50,6 +50,21 @@ Options:
 
 The browser remembers logins between runs. Sign in to a job site (or LinkedIn, Workday...) once and you stay signed in. If a site shows a CAPTCHA, solve it yourself and press Enter.
 
+## Apply to a whole list of jobs (e.g. your Notion tracker)
+
+1. In Notion, open your tracker, click **•••** (top right) → **Export** → **Markdown & CSV**, and unzip it. Use the `.csv` file. Exporting from **⋯ → Download as CSV** on the database view also works.
+2. Run:
+   ```bash
+   python -m jobapp batch "Job Tracker.csv" --list    # preview which jobs it will open
+   python -m jobapp batch "Job Tracker.csv"           # go through them one by one
+   ```
+
+It finds the job-link column on its own, plus the company, role and status columns if you have them. A plain `.txt` file with one link per line works too. It **skips** jobs you've already logged in `applications.csv` and rows whose status says *Applied, Interview, Offer, Rejected...*. Statuses like *Not applied*, *To apply* or *Interested* are kept. Duplicate links are skipped too.
+
+Each job opens in the same browser window. When you finish one, type `q` to log it and open the next, `s` to skip it, or `x` to stop for the day. Run the same command tomorrow and it picks up where you left off.
+
+Options: `--limit 5` does only the next 5 jobs, `--all` includes jobs already marked done, and `--cover-letter` / `--no-ai` work the same as with `apply`.
+
 ## Just write a cover letter
 
 ```bash
