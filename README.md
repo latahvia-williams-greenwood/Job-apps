@@ -25,6 +25,7 @@ Filled fields get a **green** outline and anything it couldn't answer gets an **
    cp profile.example.yaml profile.yaml       # Windows: copy profile.example.yaml profile.yaml
    ```
    Open `profile.yaml` and fill in your details. Put your résumé in this folder and set `resume:` to its file name (PDF, Word, or text).
+   To have your transcript uploaded when a form asks for one, put it in this folder too and set `transcript:` to its file name. Claude also uses it to answer coursework and GPA questions.
    `profile.yaml`, your résumé, and your cover letters are git-ignored, so they never get uploaded to GitHub.
 
 ## Apply to a job

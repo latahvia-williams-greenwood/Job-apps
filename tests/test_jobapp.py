@@ -17,6 +17,8 @@ def profile(tmp_path):
     data = yaml.safe_load((ROOT / "profile.example.yaml").read_text())
     (tmp_path / "resume.txt").write_text("Jane Doe\nCustomer Success Manager, Acme Corp, 2019-2024\nSQL, Tableau")
     data["resume"] = "resume.txt"
+    (tmp_path / "transcript.txt").write_text("Cumulative GPA: 3.5")
+    data["transcript"] = "transcript.txt"
     path = tmp_path / "profile.yaml"
     path.write_text(yaml.safe_dump(data))
     return load_profile(path)
@@ -87,6 +89,7 @@ def test_fill_fixture_form(profile, tmp_path, monkeypatch):
         assert v("#sql") == "4"
         assert page.locator("input[name=privacy]").is_checked()
         assert page.locator("#resume").evaluate("el => el.files[0].name") == "resume.txt"
+        assert page.locator("#tr").evaluate("el => el.files[0].name") == "transcript.txt"
         assert page.locator("#cl").evaluate("el => el.files[0].name").endswith(".pdf")
         browser.close()
 

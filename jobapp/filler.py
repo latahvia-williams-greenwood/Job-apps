@@ -152,7 +152,11 @@ class Applicant:
         # 1. Upload the résumé first: many portals parse it and pre-fill fields.
         fields = self._scan(page)
         for frame, f, filled in fields:
-            if f.kind == "file" and not filled and not _is_cover_letter(f) and self.profile.resume_path:
+            if f.kind == "file" and not filled and _is_transcript(f) and self.profile.transcript_path:
+                if self._upload(frame, f, self.profile.transcript_path):
+                    print(f"  ✓ uploaded transcript → {f.question}")
+                continue
+            if f.kind == "file" and not filled and not _is_cover_letter(f) and not _is_other_doc(f) and self.profile.resume_path:
                 if self._upload(frame, f, self.profile.resume_path):
                     print(f"  ✓ uploaded résumé → {f.question or 'file field'}")
                     page.wait_for_timeout(2500)
@@ -308,3 +312,13 @@ class Applicant:
 
 def _is_cover_letter(f: FormField) -> bool:
     return bool(re.search(r"cover[\s_-]?letter|motivation letter|letter of interest", f.question + " " + f.name, re.I))
+
+
+def _is_transcript(f: FormField) -> bool:
+    return bool(re.search(r"transcript", f.question + " " + f.name, re.I))
+
+
+def _is_other_doc(f: FormField) -> bool:
+    """File fields that want something other than a résumé (don't upload the résumé there)."""
+    return bool(re.search(r"transcript|writing sample|portfolio|reference|certificat|photo|headshot|\bid\b",
+                          f.question + " " + f.name, re.I))

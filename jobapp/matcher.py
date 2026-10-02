@@ -69,6 +69,7 @@ RULES: list[tuple[str, str]] = [
     (r"current (job )?title|job title", "work.current_title"),
     (r"current (company|employer)|most recent (company|employer)", "work.current_company"),
     (r"years of (relevant |professional )?experience", "work.years_experience"),
+    (r"\bgpa\b|grade point", "work.gpa"),
     (r"(highest )?(level of )?education|degree level", "work.highest_education"),
     (r"school|university|college", "work.school"),
     (r"\bdegree\b|major|field of study", "work.degree"),
