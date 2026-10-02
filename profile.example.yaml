@@ -1,0 +1,64 @@
+# Copy this file to profile.yaml and fill in your details.
+#   cp profile.example.yaml profile.yaml
+# profile.yaml is git-ignored so your personal info never gets committed.
+
+resume: resume.pdf            # path to your résumé (.pdf, .docx, .txt or .md)
+
+personal:
+  first_name: Jane
+  last_name: Doe
+  preferred_name: ""
+  email: jane.doe@example.com
+  phone: "555-123-4567"
+  address: 123 Main St
+  city: Atlanta
+  state: GA
+  zip: "30301"
+  country: United States
+  linkedin: https://www.linkedin.com/in/janedoe
+  github: ""
+  portfolio: ""
+  website: ""
+
+work:
+  current_title: Customer Success Manager
+  current_company: Acme Corp
+  years_experience: "5"
+  highest_education: Bachelor's Degree
+  school: Georgia State University
+  degree: B.S. Business Administration
+  graduation_year: "2019"
+
+# Answers to the questions almost every application asks.
+preferences:
+  authorized_to_work: "Yes"          # legally authorized to work in the US?
+  require_sponsorship: "No"          # need visa sponsorship now or in the future?
+  willing_to_relocate: "No"
+  remote_preference: Remote or hybrid
+  desired_salary: "75000"
+  start_date: Two weeks after offer
+  notice_period: Two weeks
+  over_18: "Yes"
+  background_check: "Yes"            # willing to undergo a background check?
+  drug_test: "Yes"
+  how_did_you_hear: Company website
+  previously_employed_here: "No"
+
+# Voluntary self-identification. "Decline to self-identify" is always safe.
+eeo:
+  gender: Decline to self-identify
+  race: Decline to self-identify
+  hispanic_latino: Decline to self-identify
+  veteran_status: I am not a protected veteran
+  disability_status: I do not want to answer
+
+# Your own answers for questions you see often. Keys are matched loosely
+# against the question text (case-insensitive, substring match).
+custom_answers:
+  "why do you want to work here": ""
+  "greatest strength": ""
+
+# Extra facts Claude may use when writing answers or cover letters
+# (achievements, things not on your résumé, tone preferences, etc.).
+notes: |
+  I prefer a warm, confident, concise tone.
